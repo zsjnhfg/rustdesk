@@ -2,20 +2,26 @@ name: Build 坚果远程 Windows
 
 on:
   workflow_dispatch:
-    branches: [ custom-jianguo, master ]
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
     defaults:
       run:
         shell: pwsh
 
     steps:
-      - name: Checkout with submodules
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -27,38 +33,34 @@ jobs:
           choco install llvm -y
           echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Setup vcpkg and dependencies
+      - name: Setup vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
           cd $env:USERPROFILE\vcpkg
           .\bootstrap-vcpkg.bat
           echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
-          .\vcpkg.exe install libvpx:x64-windows-static libyuv:x64-windows-static opus:x64-windows-static aom:x64-windows-static
+          .\vcpkg.exe install libvpx:x64-windows-static libyuv:x64-windows-static opus:x64-windows-static aom:x64-windows-static --recurse
 
-      - name: Download Sciter DLL
+      - name: Download Sciter
         run: |
-          New-Item -ItemType Directory -Force -Path target\release | Out-Null
+          New-Item -ItemType Directory -Force -Path target\release
           Invoke-WebRequest -Uri "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.win/x64/sciter.dll" -OutFile "target\release\sciter.dll"
 
-      - name: 修改服务器地址和名称
+      - name: 修改服务器和名称
         run: |
-          $files = Get-ChildItem -Recurse -Filter config.rs
-          foreach ($f in $files) {
-            (Get-Content $f.FullName) -replace 'DEFAULT_RENDEZVOUS_SERVER.*?;', 'DEFAULT_RENDEZVOUS_SERVER: &str = "askair.cn";' | Set-Content $f.FullName
-          }
+          (Get-Content libs/hbb_common/src/config.rs -Raw) -replace 'DEFAULT_RENDEZVOUS_SERVER.*?;', 'DEFAULT_RENDEZVOUS_SERVER: &str = "askair.cn";' | Set-Content libs/hbb_common/src/config.rs
           (Get-Content Cargo.toml) -replace 'name = "rustdesk"', 'name = "坚果远程"' | Set-Content Cargo.toml
-          Write-Host "✅ 已修改为 askair.cn + 坚果远程"
+          Write-Host "✅ 修改完成: askair.cn + 坚果远程"
 
-      - name: Build Windows Release
+      - name: Build
         run: cargo build --release --target x86_64-pc-windows-msvc
 
-      - name: 打包绿色版（支持管理员权限）
+      - name: 打包绿色版（管理员权限）
         run: |
           Copy-Item "target\x86_64-pc-windows-msvc\release\rustdesk.exe" -Destination "坚果远程.exe"
-          Copy-Item "坚果远程.exe" -Destination "坚果远程-qs.exe"   # -qs 后缀自动管理员权限
-          Get-ChildItem *.exe
+          Copy-Item "坚果远程.exe" -Destination "坚果远程-qs.exe"
 
-      - name: Upload 绿色客户端
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: 坚果远程-Windows-绿色版
