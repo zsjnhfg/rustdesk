@@ -1,0 +1,48 @@
+name: Build 坚果远程 Windows
+
+on:
+  push:
+    branches: [ custom-jianguo ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 修改服务器和名称
+        run: |
+          # 修改 ID Server
+          (Get-Content libs/hbb_common/src/config.rs -Raw) -replace 'const DEFAULT_RENDEZVOUS_SERVER.*?;', 'const DEFAULT_RENDEZVOUS_SERVER: &str = "askair.cn";' | Set-Content libs/hbb_common/src/config.rs
+          
+          # 修改客户端名称
+          (Get-Content Cargo.toml -Raw) -replace 'name = "rustdesk"', 'name = "坚果远程"' | Set-Content Cargo.toml
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Install dependencies
+        run: |
+          choco install llvm -y
+          echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Build Windows Release
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: 打包绿色版 + 管理员权限
+        run: |
+          Copy-Item target\x86_64-pc-windows-msvc\release\rustdesk.exe "坚果远程.exe"
+          Copy-Item "坚果远程.exe" "坚果远程-qs.exe"   # -qs 后缀支持自动管理员权限
+
+      - name: Upload 绿色客户端
+        uses: actions/upload-artifact@v4
+        with:
+          name: 坚果远程-Windows-绿色版
+          path: |
+            坚果远程.exe
+            坚果远程-qs.exe
