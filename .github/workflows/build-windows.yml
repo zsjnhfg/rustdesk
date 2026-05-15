@@ -57,7 +57,7 @@ jobs:
           }
           # 修改名称
           (Get-Content Cargo.toml) -replace 'name = "rustdesk"', 'name = "JMGODesktop"' | Set-Content Cargo.toml
-          Write-Output "✅ 已设置为 askair.cn + JMGODesktop"
+          Write-Output "✅ READER askair.cn + JMGODesktop"
 
       - name: Build Release
         run: cargo build --release --target x86_64-pc-windows-msvc
