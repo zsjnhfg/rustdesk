@@ -1,4 +1,4 @@
-name: Build 坚果远程 Windows
+name: Build JMGODesktop Windows
 
 on:
   workflow_dispatch:
@@ -56,21 +56,21 @@ jobs:
             (Get-Content $file.FullName) -replace 'DEFAULT_RENDEZVOUS_SERVER.*?;', 'DEFAULT_RENDEZVOUS_SERVER: &str = "askair.cn";' | Set-Content $file.FullName
           }
           # 修改名称
-          (Get-Content Cargo.toml) -replace 'name = "rustdesk"', 'name = "坚果远程"' | Set-Content Cargo.toml
-          Write-Output "✅ 已设置为 askair.cn + 坚果远程"
+          (Get-Content Cargo.toml) -replace 'name = "rustdesk"', 'name = "JMGODesktop"' | Set-Content Cargo.toml
+          Write-Output "✅ 已设置为 askair.cn + JMGODesktop"
 
       - name: Build Release
         run: cargo build --release --target x86_64-pc-windows-msvc
 
-      - name: 打包绿色版（管理员权限）
+      - name: JMGODesktop
         run: |
-          Copy-Item "target\x86_64-pc-windows-msvc\release\rustdesk.exe" -Destination "坚果远程.exe"
-          Copy-Item "坚果远程.exe" -Destination "坚果远程-qs.exe"   # -qs 后缀 = 默认管理员权限
+          Copy-Item "target\x86_64-pc-windows-msvc\release\rustdesk.exe" -Destination "JMGODesktop.exe"
+          Copy-Item "JMGODesktop.exe" -Destination "JMGODesktop-qs.exe"   # -qs 后缀 = 默认管理员权限
 
-      - name: Upload 绿色客户端
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: 坚果远程-Windows-绿色版
+          name: JMGODesktop
           path: |
-            坚果远程.exe
-            坚果远程-qs.exe
+            JMGODesktop.exe
+            JMGODesktop-qs.exe
